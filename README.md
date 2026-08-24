@@ -20,7 +20,7 @@ those can be added later without a rewrite.
 | Database            | PostgreSQL                 |
 | ORM                 | Prisma                     |
 | Auth                | JWT (access + refresh)     |
-| Password hashing    | bcrypt                     |
+| Password hashing    | bcryptjs                   |
 | Validation          | Zod                        |
 | Security headers    | Helmet                     |
 | CORS                | cors                       |

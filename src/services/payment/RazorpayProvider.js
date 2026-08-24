@@ -12,7 +12,7 @@ class RazorpayProvider extends PaymentProvider {
     this.key = key;
     this.secret = secret;
     this.webhookSecret = webhookSecret;
-    this.sandboxMode = !key || !secret || key.includes('xxxx');
+    this.sandboxMode = env.isTest || !key || !secret || key.includes('xxxx');
   }
 
   async createOrder({ amountPaise, receiptId, notes }) {
