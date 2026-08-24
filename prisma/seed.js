@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 const BCRYPT_ROUNDS = 10; // lower than prod default for faster seeding

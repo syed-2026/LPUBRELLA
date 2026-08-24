@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const prisma = require('../config/prisma');
 const userRepository = require('../repositories/userRepository');
 const stationRepository = require('../repositories/stationRepository');

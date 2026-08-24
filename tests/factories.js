@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const request = require('supertest');
 const app = require('../src/app');
 const prisma = require('../src/config/prisma');
