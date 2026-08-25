@@ -3,6 +3,27 @@ const env = require('./config/env');
 const prisma = require('./config/prisma');
 const logger = require('./utils/logger');
 const { scheduleOverdueRentalsJob } = require('./jobs/overdueRentalsJob');
+const paymentProvider = require('./services/payment/RazorpayProvider');
+
+function getGitCommit() {
+  return process.env.RAILWAY_GIT_COMMIT_SHA
+    || process.env.RAILWAY_GIT_COMMIT
+    || process.env.GIT_COMMIT_SHA
+    || 'unknown';
+}
+
+logger.info('[BOOT_DIAGNOSTICS]', {
+  NODE_ENV: env.nodeEnv,
+  isProduction: env.isProduction,
+  isTest: env.isTest,
+  paymentProvider: env.payment.provider,
+  paymentKeyConfigured: Boolean(env.payment.key),
+  paymentSecretConfigured: Boolean(env.payment.secret),
+  paymentWebhookSecretConfigured: Boolean(env.payment.webhookSecret),
+  sandboxMode: Boolean(paymentProvider.sandboxMode),
+  razorpayVersion: require('razorpay/package.json').version,
+  gitCommit: getGitCommit(),
+});
 
 const server = app.listen(env.port, () => {
   logger.info('server_started', { port: env.port, env: env.nodeEnv });
