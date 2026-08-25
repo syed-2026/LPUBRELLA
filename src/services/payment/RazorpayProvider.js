@@ -45,6 +45,11 @@ class RazorpayProvider extends PaymentProvider {
     }
 
     try {
+      logger.info('[RAZORPAY_ORDER]', {
+        mode: 'REAL',
+        amountPaise,
+        currency: 'INR',
+      });
       const client = this._getClient();
       const options = {
         amount: amountPaise,
@@ -58,12 +63,22 @@ class RazorpayProvider extends PaymentProvider {
         raw: order,
       };
     } catch (err) {
-      const errorObj = err.error || (err.response && err.response.data && err.response.data.error) || {};
-      const statusCode = err.statusCode || (err.response && err.response.status) || 500;
-      const errorCode = errorObj.code || err.code || 'GATEWAY_ERROR';
-      const errorDescription = errorObj.description || err.message || (typeof err === 'string' ? err : 'Unknown error from payment gateway');
+      const responseData = err && err.response && err.response.data;
+      const errorObj = (err && err.error) || (responseData && responseData.error) || {};
+      const statusCode = (err && (err.statusCode || err.status))
+        || (err && err.response && err.response.status)
+        || (responseData && responseData.statusCode)
+        || 500;
+      const errorCode = errorObj.code || (err && err.code) || 'GATEWAY_ERROR';
+      const errorDescription = errorObj.description
+        || (err && err.description)
+        || (err && err.message)
+        || (typeof err === 'string' ? err : 'Unknown error from payment gateway');
+      const errorReason = errorObj.reason || (err && err.reason) || '';
+      const errorSource = errorObj.source || (err && err.source) || '';
+      const errorStep = errorObj.step || (err && err.step) || '';
 
-      logger.error('Razorpay createOrder failed', {
+      logger.error('[RAZORPAY_ERROR]', {
         provider: 'razorpay',
         hasKey: Boolean(this.key),
         hasSecret: Boolean(this.secret),
@@ -76,6 +91,9 @@ class RazorpayProvider extends PaymentProvider {
         sdkErrorCode: errorCode,
         sdkHttpStatus: statusCode,
         description: errorDescription,
+        reason: errorReason,
+        source: errorSource,
+        step: errorStep,
       });
 
       throw AppError.internal(`Failed to create payment order with payment gateway: ${errorDescription}`);
