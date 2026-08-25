@@ -8,6 +8,19 @@ const umbrellaStateMachine = require('./umbrellaStateMachine');
 const provider = require('./payment/RazorpayProvider');
 const env = require('../config/env');
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
+
+function paymentTraceError(error) {
+  return logger.sanitize({
+    constructorName: error && error.constructor ? error.constructor.name : typeof error,
+    statusCode: error && error.statusCode,
+    code: error && error.code,
+    message: error && error.message,
+    error: error && error.error,
+    responseData: error && error.response && error.response.data,
+    stack: error && error.stack,
+  });
+}
 
 // The direct-verify endpoint and the provider webhook can race each
 // other for the same payment. SERIALIZABLE isolation ensures only one
@@ -106,54 +119,74 @@ const paymentService = {
   // Step 1: student selects a plan; backend computes price server-side
   // (never trusts a client-supplied amount) and opens a provider order.
   async createOrder({ rentalId, studentId }) {
-    const rental = await rentalRepository.findByIdTx(prisma, rentalId);
-    if (!rental) throw AppError.notFound('Rental not found');
-    if (rental.studentId !== studentId) {
-      throw AppError.forbidden('This rental does not belong to you');
-    }
-    if (rental.status !== 'CREATED' && rental.status !== 'PAYMENT_PENDING') {
-      throw AppError.conflict(`Cannot create payment order for rental in status ${rental.status}`);
-    }
+    logger.info('[PAYMENT_CREATE_ORDER_TRACE] entered', { rentalId });
+    let providerTraceLogged = false;
+    try {
+      const rental = await rentalRepository.findByIdTx(prisma, rentalId);
+      logger.info('[PAYMENT_CREATE_ORDER_TRACE] rental lookup complete', { rentalFound: Boolean(rental), rentalId });
+      if (!rental) throw AppError.notFound('Rental not found');
+      if (rental.studentId !== studentId) {
+        throw AppError.forbidden('This rental does not belong to you');
+      }
+      if (rental.status !== 'CREATED' && rental.status !== 'PAYMENT_PENDING') {
+        throw AppError.conflict(`Cannot create payment order for rental in status ${rental.status}`);
+      }
 
-    let payment = await paymentRepository.findByRentalId(rentalId);
+      let payment = await paymentRepository.findByRentalId(rentalId);
+      logger.info('[PAYMENT_CREATE_ORDER_TRACE] payment lookup complete', { paymentFound: Boolean(payment), rentalId });
 
-    const amountPaise = rental.priceAtRentalPaise; // server-computed, immutable snapshot
+      const amountPaise = rental.priceAtRentalPaise; // server-computed, immutable snapshot
 
-    if (!payment) {
-      const order = await provider.createOrder({
-        amountPaise,
-        receiptId: rental.id,
-        notes: { rentalId: rental.id, studentId },
+      if (!payment) {
+        logger.info('[PAYMENT_CREATE_ORDER_TRACE] provider about to create order', { rentalId, amountPaise });
+        let order;
+        try {
+          order = await provider.createOrder({
+            amountPaise,
+            receiptId: rental.id,
+            notes: { rentalId: rental.id, studentId },
+          });
+          logger.info('[PAYMENT_CREATE_ORDER_TRACE] provider returned', { rentalId, providerOrderIdConfigured: Boolean(order && order.providerOrderId) });
+        } catch (error) {
+          providerTraceLogged = true;
+          logger.error('[PAYMENT_CREATE_ORDER_TRACE] provider threw', { rentalId, ...paymentTraceError(error) });
+          throw error;
+        }
+        payment = await paymentRepository.create({
+          rentalId,
+          provider: 'razorpay',
+          providerOrderId: order.providerOrderId,
+          amountPaise,
+          status: 'CREATED',
+        });
+      }
+
+      if (rental.status === 'CREATED') {
+        rentalStateMachine.assertTransition(rental.status, 'PAYMENT_PENDING');
+        await rentalRepository.update(rental.id, { status: 'PAYMENT_PENDING' });
+      }
+
+      await auditRepository.log({
+        actorId: studentId,
+        action: 'PAYMENT_CREATED',
+        entity: 'Payment',
+        entityId: payment.id,
+        metadata: { amountPaise },
       });
-      payment = await paymentRepository.create({
-        rentalId,
-        provider: 'razorpay',
-        providerOrderId: order.providerOrderId,
+
+      return {
+        paymentId: payment.id,
+        providerOrderId: payment.providerOrderId,
         amountPaise,
-        status: 'CREATED',
-      });
+        currency: 'INR',
+        providerKey: env.payment.key || process.env.PAYMENT_KEY || null,
+      };
+    } catch (error) {
+      if (!providerTraceLogged) {
+        logger.error('[PAYMENT_CREATE_ORDER_TRACE] failed', { rentalId, ...paymentTraceError(error) });
+      }
+      throw error;
     }
-
-    if (rental.status === 'CREATED') {
-      rentalStateMachine.assertTransition(rental.status, 'PAYMENT_PENDING');
-      await rentalRepository.update(rental.id, { status: 'PAYMENT_PENDING' });
-    }
-
-    await auditRepository.log({
-      actorId: studentId,
-      action: 'PAYMENT_CREATED',
-      entity: 'Payment',
-      entityId: payment.id,
-      metadata: { amountPaise },
-    });
-
-    return {
-      paymentId: payment.id,
-      providerOrderId: payment.providerOrderId,
-      amountPaise,
-      currency: 'INR',
-      providerKey: env.payment.key || process.env.PAYMENT_KEY || null,
-    };
   },
 
   // Step 2: client reports it completed payment. Backend independently
