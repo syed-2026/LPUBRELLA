@@ -12,6 +12,9 @@ const AppError = require('./utils/AppError');
 
 const app = express();
 
+// Trust reverse proxy (Railway, Heroku, Cloudflare) for accurate client IP in rate limiting
+app.set('trust proxy', 1);
+
 app.disable('x-powered-by');
 app.use(helmet());
 app.use(

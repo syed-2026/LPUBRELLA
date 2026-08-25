@@ -38,7 +38,7 @@ function errorHandler(err, req, res, next) {
     method: req.method,
     statusCode: normalized.statusCode,
     code: normalized.code,
-    message: normalized.isOperational ? normalized.message : 'unhandled error',
+    message: normalized.message || (err && err.message) || 'unhandled error',
     userId: req.user && req.user.id,
     // Only include stack traces outside production, and never in the
     // HTTP response itself.

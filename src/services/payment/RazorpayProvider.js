@@ -58,13 +58,27 @@ class RazorpayProvider extends PaymentProvider {
         raw: order,
       };
     } catch (err) {
+      const errorObj = err.error || (err.response && err.response.data && err.response.data.error) || {};
+      const statusCode = err.statusCode || (err.response && err.response.status) || 500;
+      const errorCode = errorObj.code || err.code || 'GATEWAY_ERROR';
+      const errorDescription = errorObj.description || err.message || (typeof err === 'string' ? err : 'Unknown error from payment gateway');
+
       logger.error('Razorpay createOrder failed', {
-        message: err.message,
-        statusCode: err.statusCode,
-        code: err.error?.code,
-        description: err.error?.description,
+        provider: 'razorpay',
+        hasKey: Boolean(this.key),
+        hasSecret: Boolean(this.secret),
+        isTest: Boolean(env.isTest),
+        sandboxMode: Boolean(this.sandboxMode),
+        rentalId: receiptId,
+        amountPaise,
+        currency: 'INR',
+        sdkErrorName: err.name || 'RazorpayError',
+        sdkErrorCode: errorCode,
+        sdkHttpStatus: statusCode,
+        description: errorDescription,
       });
-      throw AppError.internal('Failed to create payment order with payment gateway');
+
+      throw AppError.internal(`Failed to create payment order with payment gateway: ${errorDescription}`);
     }
   }
 

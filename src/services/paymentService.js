@@ -6,6 +6,7 @@ const auditRepository = require('../repositories/auditRepository');
 const rentalStateMachine = require('./rentalStateMachine');
 const umbrellaStateMachine = require('./umbrellaStateMachine');
 const provider = require('./payment/RazorpayProvider');
+const env = require('../config/env');
 const AppError = require('../utils/AppError');
 
 // The direct-verify endpoint and the provider webhook can race each
@@ -151,7 +152,7 @@ const paymentService = {
       providerOrderId: payment.providerOrderId,
       amountPaise,
       currency: 'INR',
-      providerKey: process.env.PAYMENT_KEY || null,
+      providerKey: env.payment.key || process.env.PAYMENT_KEY || null,
     };
   },
 
