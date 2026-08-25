@@ -1,16 +1,24 @@
 require('dotenv').config();
 
+function cleanEnvString(val) {
+  if (!val) return '';
+  let s = String(val).trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
 function required(name, fallback) {
-  const value = process.env[name] ?? fallback;
-  if (value === undefined) {
+  const raw = process.env[name] ?? fallback;
+  if (raw === undefined) {
     // Fail fast at boot rather than later with a confusing runtime error.
     // eslint-disable-next-line no-console
     console.error(`[config] Missing required environment variable: ${name}`);
     process.exit(1);
   }
-  return value;
+  return cleanEnvString(raw);
 }
-
 
 const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -26,10 +34,10 @@ const env = {
   },
 
   payment: {
-    provider: process.env.PAYMENT_PROVIDER || 'razorpay',
-    key: process.env.PAYMENT_KEY || '',
-    secret: process.env.PAYMENT_SECRET || '',
-    webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET || '',
+    provider: cleanEnvString(process.env.PAYMENT_PROVIDER) || 'razorpay',
+    key: cleanEnvString(process.env.PAYMENT_KEY),
+    secret: cleanEnvString(process.env.PAYMENT_SECRET),
+    webhookSecret: cleanEnvString(process.env.PAYMENT_WEBHOOK_SECRET),
   },
 
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
