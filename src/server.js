@@ -23,6 +23,13 @@ logger.info('[BOOT_DIAGNOSTICS]', {
   sandboxMode: Boolean(paymentProvider.sandboxMode),
   razorpayVersion: require('razorpay/package.json').version,
   gitCommit: getGitCommit(),
+  trustProxy: app.get('trust proxy'),
+});
+
+logger.info('[BUILD_DIAGNOSTICS]', {
+  gitCommit: getGitCommit(),
+  packageVersion: require('../package.json').version,
+  razorpayVersion: require('razorpay/package.json').version,
 });
 
 const server = app.listen(env.port, () => {

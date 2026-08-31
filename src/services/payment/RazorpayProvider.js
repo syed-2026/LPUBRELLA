@@ -49,6 +49,8 @@ class RazorpayProvider extends PaymentProvider {
         mode: 'REAL',
         amountPaise,
         currency: 'INR',
+        rentalId: receiptId,
+        paymentId: notes && notes.paymentId ? notes.paymentId : null,
       });
       const client = this._getClient();
       const options = {
@@ -68,28 +70,19 @@ class RazorpayProvider extends PaymentProvider {
       const statusCode = (err && (err.statusCode || err.status))
         || (err && err.response && err.response.status)
         || (responseData && responseData.statusCode)
-        || 500;
-      const errorCode = errorObj.code || (err && err.code) || 'GATEWAY_ERROR';
+        || null;
+      const errorCode = errorObj.code || (err && err.code) || null;
       const errorDescription = errorObj.description
         || (err && err.description)
         || (err && err.message)
-        || (typeof err === 'string' ? err : 'Unknown error from payment gateway');
-      const errorReason = errorObj.reason || (err && err.reason) || '';
-      const errorSource = errorObj.source || (err && err.source) || '';
-      const errorStep = errorObj.step || (err && err.step) || '';
+        || 'Unknown Razorpay error';
+      const errorReason = errorObj.reason || (err && err.reason) || null;
+      const errorSource = errorObj.source || (err && err.source) || null;
+      const errorStep = errorObj.step || (err && err.step) || null;
 
       logger.error('[RAZORPAY_ERROR]', {
-        provider: 'razorpay',
-        hasKey: Boolean(this.key),
-        hasSecret: Boolean(this.secret),
-        isTest: Boolean(env.isTest),
-        sandboxMode: Boolean(this.sandboxMode),
-        rentalId: receiptId,
-        amountPaise,
-        currency: 'INR',
-        sdkErrorName: err.name || 'RazorpayError',
-        sdkErrorCode: errorCode,
-        sdkHttpStatus: statusCode,
+        statusCode,
+        code: errorCode,
         description: errorDescription,
         reason: errorReason,
         source: errorSource,

@@ -133,12 +133,19 @@ const paymentService = {
       }
 
       let payment = await paymentRepository.findByRentalId(rentalId);
-      logger.info('[PAYMENT_CREATE_ORDER_TRACE] payment lookup complete', { paymentFound: Boolean(payment), rentalId });
-
       const amountPaise = rental.priceAtRentalPaise; // server-computed, immutable snapshot
 
+      logger.info('[PAYMENT_CREATE_ORDER_TRACE]', {
+        rentalId,
+        studentId,
+        rentalStatus: rental.status,
+        paymentExists: Boolean(payment),
+        paymentStatus: payment ? payment.status : null,
+        amountPaise,
+        currency: 'INR',
+      });
+
       if (!payment) {
-        logger.info('[PAYMENT_CREATE_ORDER_TRACE] provider about to create order', { rentalId, amountPaise });
         let order;
         try {
           order = await provider.createOrder({
@@ -146,7 +153,9 @@ const paymentService = {
             receiptId: rental.id,
             notes: { rentalId: rental.id, studentId },
           });
-          logger.info('[PAYMENT_CREATE_ORDER_TRACE] provider returned', { rentalId, providerOrderIdConfigured: Boolean(order && order.providerOrderId) });
+          logger.info('[PAYMENT_CREATE_ORDER_SUCCESS]', {
+            providerOrderId: order.providerOrderId,
+          });
         } catch (error) {
           providerTraceLogged = true;
           logger.error('[PAYMENT_CREATE_ORDER_TRACE] provider threw', { rentalId, ...paymentTraceError(error) });
