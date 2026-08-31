@@ -16,13 +16,36 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.disable('x-powered-by');
-app.use(helmet());
-app.use(
-  cors({
-    origin: env.corsOrigin,
-    credentials: true,
-  })
-);
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://lpubrella.vercel.app',
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (such as mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    const configured = Array.isArray(env.corsOrigin) ? env.corsOrigin : [env.corsOrigin];
+    if (
+      configured.includes(origin) ||
+      configured.includes('*') ||
+      defaultAllowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      /^http:\/\/localhost(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS origin not allowed: ${origin}`));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Don't log request bodies (may contain passwords/tokens); morgan's
 // default combined-ish format below logs only method/url/status/timing.
