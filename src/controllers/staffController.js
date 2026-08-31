@@ -12,6 +12,11 @@ const staffController = {
     res.status(200).json(result);
   }),
 
+  lookupRentalByUmbrella: asyncHandler(async (req, res) => {
+    const rental = await staffService.lookupRentalByUmbrellaCode(req.user, req.query.umbrellaCode);
+    res.status(200).json({ rental });
+  }),
+
   inventory: asyncHandler(async (req, res) => {
     const result = await staffService.inventory(req.user);
     res.status(200).json(result);
