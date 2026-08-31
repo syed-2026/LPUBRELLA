@@ -1,1 +1,0 @@
-import{j as s}from"./query-BnUCzTLM.js";import{e as r}from"./index-CPqAsLbs.js";import{t as n}from"./statusMeta-DclJ_CRT.js";function i({label:e,tone:t}){return s.jsx("span",{className:r("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",n[t]),children:e})}export{i as S};

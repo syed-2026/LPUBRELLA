@@ -40,7 +40,11 @@ const env = {
     webhookSecret: cleanEnvString(process.env.PAYMENT_WEBHOOK_SECRET),
   },
 
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  corsOrigin: process.env.CORS_ORIGIN
+    ? (process.env.CORS_ORIGIN.includes(',')
+        ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
+        : process.env.CORS_ORIGIN.trim())
+    : ['http://localhost:3000', 'https://lpubrella.vercel.app'],
 
   returnTokenTtlSeconds: parseInt(process.env.RETURN_TOKEN_TTL_SECONDS || '30', 10),
 

@@ -2,17 +2,14 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import type { ApiErrorBody } from '@/types';
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from './tokenStorage';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const DEFAULT_PROD_API_URL = 'https://lpubrella-production.up.railway.app/api/v1';
+const DEFAULT_DEV_API_URL = 'http://localhost:4000/api/v1';
 
-if (!baseURL) {
-  // Fail loudly at startup rather than silently hitting a wrong/relative URL.
-  console.error(
-    'VITE_API_BASE_URL is not set. Copy .env.example to .env and set it to your backend URL.'
-  );
-}
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const baseURL = (rawBaseUrl && rawBaseUrl.trim()) || (import.meta.env.DEV ? DEFAULT_DEV_API_URL : DEFAULT_PROD_API_URL);
 
 export const apiClient = axios.create({
-  baseURL: baseURL || '/api/v1',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -90,7 +87,7 @@ async function attemptRefresh(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = axios
       .post<{ accessToken: string; refreshToken: string }>(
-        `${baseURL || '/api/v1'}/auth/refresh`,
+        `${baseURL}/auth/refresh`,
         { refreshToken }
       )
       .then((res) => {
