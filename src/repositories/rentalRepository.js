@@ -23,20 +23,6 @@ const rentalRepository = {
       where: { umbrellaId, status: { in: ACTIVE_STATUSES } },
     }),
 
-  // Used by the staff "return by umbrella code" lookup: an umbrella can be
-  // returned at any participating station, not only the one it was rented
-  // from, so this intentionally does NOT filter by originStationId.
-  findActiveOrOverdueForUmbrellaWithDetails: (umbrellaId) =>
-    prisma.rental.findFirst({
-      where: { umbrellaId, status: { in: ['ACTIVE', 'OVERDUE'] } },
-      include: {
-        umbrella: true,
-        pricingPlan: true,
-        originStation: true,
-        student: { select: { id: true, name: true, lpuId: true, email: true, phone: true } },
-      },
-    }),
-
   create: (data) => prisma.rental.create({ data }),
   update: (id, data) => prisma.rental.update({ where: { id }, data }),
   updateTx: (tx, id, data) => tx.rental.update({ where: { id }, data }),
