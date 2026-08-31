@@ -17,25 +17,47 @@ app.set('trust proxy', 1);
 
 app.disable('x-powered-by');
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-const defaultAllowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
+// Production-safe CORS allowlist: explicit origins that are always allowed
+// regardless of env.corsOrigin configuration state
+const PRODUCTION_ALLOWED_ORIGINS = [
   'https://lpubrella.vercel.app',
+  'https://lpubrella-production.up.railway.app', // Backend itself (for internal testing)
 ];
+
+const DEV_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:4000',
+  'http://localhost:5173', // Vite default
+  'http://localhost:8080',
+];
+
+const defaultAllowedOrigins = env.isProduction 
+  ? PRODUCTION_ALLOWED_ORIGINS 
+  : [...DEV_ALLOWED_ORIGINS, ...PRODUCTION_ALLOWED_ORIGINS]; // Allow both in dev
 
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (such as mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
 
+    // Always allow hardcoded allowlist (production-safe fallback)
+    if (defaultAllowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Check configured origins (env.corsOrigin)
     const configured = Array.isArray(env.corsOrigin) ? env.corsOrigin : [env.corsOrigin];
-    if (
-      configured.includes(origin) ||
-      configured.includes('*') ||
-      defaultAllowedOrigins.includes(origin) ||
-      origin.endsWith('.vercel.app') ||
-      /^http:\/\/localhost(:\d+)?$/.test(origin)
-    ) {
+    if (configured.includes(origin) || configured.includes('*')) {
+      return callback(null, true);
+    }
+
+    // Allow any *.vercel.app subdomain (Vercel preview deployments, staging)
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+
+    // Allow localhost with any port in development
+    if (!env.isProduction && /^http:\/\/localhost(:\d+)?$/.test(origin)) {
       return callback(null, true);
     }
 

@@ -12,6 +12,12 @@ function getGitCommit() {
     || 'unknown';
 }
 
+// Log CORS configuration safely (origins are not secrets)
+const corsOriginType = Array.isArray(env.corsOrigin) ? 'array' : 'string';
+const corsOriginValue = Array.isArray(env.corsOrigin) 
+  ? env.corsOrigin.join(',')
+  : env.corsOrigin;
+
 logger.info('[BOOT_DIAGNOSTICS]', {
   NODE_ENV: env.nodeEnv,
   isProduction: env.isProduction,
@@ -22,6 +28,8 @@ logger.info('[BOOT_DIAGNOSTICS]', {
   paymentWebhookSecretConfigured: Boolean(env.payment.webhookSecret),
   sandboxMode: Boolean(paymentProvider.sandboxMode),
   razorpayVersion: require('razorpay/package.json').version,
+  corsOriginType,
+  corsOriginValue,
   gitCommit: getGitCommit(),
   trustProxy: app.get('trust proxy'),
 });
