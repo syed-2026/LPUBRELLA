@@ -24,6 +24,7 @@ type Stage = 'search' | 'confirm' | 'qr' | 'success' | 'expired';
 
 export default function ReturnUmbrellaPage() {
   const [stage, setStage] = useState<Stage>('search');
+  console.log('CURRENT STAGE:', stage);
   const [umbrellaCode, setUmbrellaCode] = useState('');
   const [rental, setRental] = useState<Rental | null>(null);
 
@@ -48,11 +49,20 @@ export default function ReturnUmbrellaPage() {
     }
   }, [stage, polledRental, toast]);
 
-  useEffect(() => {
-    if (stage === 'qr' && remainingSeconds === 0) {
-      setStage('expired');
-    }
-  }, [stage, remainingSeconds]);
+
+
+useEffect(() => {
+  if (stage !== 'qr' || !expiresAt) return;
+
+  const expiryTime = new Date(expiresAt).getTime();
+  const delay = Math.max(0, expiryTime - Date.now());
+
+  const timer = setTimeout(() => {
+    setStage('expired');
+  }, delay);
+
+  return () => clearTimeout(timer);
+}, [stage, expiresAt]);
 
   function resetAll() {
     setStage('search');
@@ -89,6 +99,7 @@ export default function ReturnUmbrellaPage() {
         setExpiresAt(res.expiresAt);
         setStage('qr');
       },
+     
       onError: (err) => {
         if (err instanceof ApiError) toast.error(err.message);
       },
