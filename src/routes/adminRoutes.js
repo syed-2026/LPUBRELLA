@@ -4,7 +4,7 @@ const adminController = require('../controllers/adminController');
 const authenticate = require('../middleware/authenticate');
 const { requireAdmin } = require('../middleware/authorize');
 const validate = require('../middleware/validate');
-const { uuid, pagination } = require('../validators/common');
+const { uuid, pagination,adminUsersQuery } = require('../validators/common');
 const {
   createStaffOrAdminSchema,
   updateUserSchema,
@@ -23,9 +23,10 @@ router.use(authenticate, requireAdmin);
 
 const idParam = validate(z.object({ id: uuid }), 'params');
 
+
 // Users
 router.post('/users', validate(createStaffOrAdminSchema), adminController.createStaffOrAdmin);
-router.get('/users', validate(pagination, 'query'), adminController.listUsers);
+router.get('/users', validate(adminUsersQuery, 'query'), adminController.listUsers);
 router.patch('/users/:id', idParam, validate(updateUserSchema), adminController.updateUser);
 
 // Stations
@@ -35,7 +36,7 @@ router.patch('/stations/:id', idParam, validate(updateStationSchema), adminContr
 
 // Umbrellas
 router.post('/umbrellas', validate(createUmbrellaSchema), adminController.createUmbrella);
-router.get('/umbrellas', validate(pagination, 'query'), adminController.listUmbrellas);
+router.get('/umbrellas', validate(adminUsersQuery, 'query'), adminController.listUmbrellas);
 router.patch('/umbrellas/:id', idParam, validate(updateUmbrellaSchema), adminController.updateUmbrella);
 
 // Pricing
